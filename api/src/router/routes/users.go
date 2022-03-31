@@ -60,4 +60,10 @@ var routesUsers = []Route{
 		Function:               controllers.FindFollowings,
 		RequiresAuthentication: true,
 	},
+	{
+		URI:                    "/users/{id}/reset-password",
+		Method:                 http.MethodPost,
+		Function:               controllers.ResetPassword,
+		RequiresAuthentication: true,
+	},
 }
