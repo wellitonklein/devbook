@@ -14,3 +14,11 @@ VALUES
 (2, 3),
 (3, 4),
 (5, 1);
+
+INSERT INTO PUBLICATIONS (TITLE, CONTENT, AUTHOR_ID)
+VALUES
+("Publicação do Usuário 1", "Essa é a publicação do usuário 1! Viva!!!", 1),
+("Publicação do Usuário 2", "Essa é a publicação do usuário 2! Viva!!!", 2),
+("Publicação do Usuário 3", "Essa é a publicação do usuário 3! Viva!!!", 3),
+("Publicação do Usuário 4", "Essa é a publicação do usuário 4! Viva!!!", 4),
+("Publicação do Usuário 5", "Essa é a publicação do usuário 5! Viva!!!", 5);

@@ -1,12 +1,110 @@
 package controllers
 
-import "net/http"
+import (
+	"api/src/authentication"
+	"api/src/database"
+	"api/src/models"
+	"api/src/repositories"
+	"api/src/responses"
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
+	"strconv"
 
-func CreatePublication(w http.ResponseWriter, r *http.Request) {}
+	"github.com/gorilla/mux"
+)
 
-func FindAllPublication(w http.ResponseWriter, r *http.Request) {}
+func CreatePublication(w http.ResponseWriter, r *http.Request) {
+	userId, err := authentication.ExtractUserId(r)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusUnauthorized, err)
+		return
+	}
 
-func FindPublication(w http.ResponseWriter, r *http.Request) {}
+	bodyRequest, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusUnprocessableEntity, err)
+		return
+	}
+
+	publication := models.Publication{}
+	if err = json.Unmarshal(bodyRequest, &publication); err != nil {
+		responses.ErrorJSON(w, http.StatusBadRequest, err)
+		return
+	}
+
+	publication.AuthorID = userId
+
+	if err = publication.Prepare(); err != nil {
+		responses.ErrorJSON(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := database.Connection()
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer db.Close()
+
+	repository := repositories.NewRepositoryPublication(db)
+	publication.ID, err = repository.Create(publication)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	responses.SuccessJSON(w, http.StatusCreated, publication)
+}
+
+func FindAllPublication(w http.ResponseWriter, r *http.Request) {
+	userId, err := authentication.ExtractUserId(r)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	db, err := database.Connection()
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer db.Close()
+
+	repository := repositories.NewRepositoryPublication(db)
+	publications, err := repository.Find(userId)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	responses.SuccessJSON(w, http.StatusOK, publications)
+}
+
+func FindPublication(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	publicationId, err := strconv.ParseUint(params["id"], 10, 64)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := database.Connection()
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer db.Close()
+
+	repository := repositories.NewRepositoryPublication(db)
+	pubication, err := repository.FindById(publicationId)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	responses.SuccessJSON(w, http.StatusOK, pubication)
+}
 
 func UpdatePublication(w http.ResponseWriter, r *http.Request) {}
 

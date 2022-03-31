@@ -6,15 +6,15 @@ import (
 	"fmt"
 )
 
-type users struct {
+type userRepository struct {
 	db *sql.DB
 }
 
-func NewRepositoryUser(db *sql.DB) *users {
-	return &users{db}
+func NewRepositoryUser(db *sql.DB) *userRepository {
+	return &userRepository{db}
 }
 
-func (repository users) Create(user models.User) (uint64, error) {
+func (repository userRepository) Create(user models.User) (uint64, error) {
 	statement, err := repository.db.Prepare(
 		"INSERT INTO USERS (NAME, NICK, EMAIL, PASSWORD) VALUES(?, ?, ?, ?)",
 	)
@@ -37,7 +37,7 @@ func (repository users) Create(user models.User) (uint64, error) {
 
 }
 
-func (repository users) Find(search string) ([]models.User, error) {
+func (repository userRepository) Find(search string) ([]models.User, error) {
 	search = fmt.Sprintf("%%%s%%", search)
 
 	rows, err := repository.db.Query(
@@ -68,7 +68,7 @@ func (repository users) Find(search string) ([]models.User, error) {
 	return users, nil
 }
 
-func (repository users) FindById(id uint64) (models.User, error) {
+func (repository userRepository) FindById(id uint64) (models.User, error) {
 	rows, err := repository.db.Query(
 		"SELECT ID, NAME, NICK, EMAIL, CREATED_AT FROM USERS WHERE ID = ?",
 		id,
@@ -94,7 +94,7 @@ func (repository users) FindById(id uint64) (models.User, error) {
 	return user, nil
 }
 
-func (repository users) Update(id uint64, user models.User) error {
+func (repository userRepository) Update(id uint64, user models.User) error {
 	statement, err := repository.db.Prepare(
 		"UPDATE USERS SET NAME = ?, NICK = ?, EMAIL = ? WHERE ID = ?",
 	)
@@ -110,7 +110,7 @@ func (repository users) Update(id uint64, user models.User) error {
 	return nil
 }
 
-func (repository users) Delete(id uint64) error {
+func (repository userRepository) Delete(id uint64) error {
 	statement, err := repository.db.Prepare(
 		"DELETE FROM USERS WHERE ID = ?",
 	)
@@ -126,7 +126,7 @@ func (repository users) Delete(id uint64) error {
 	return nil
 }
 
-func (repository users) FindByEmail(email string) (models.User, error) {
+func (repository userRepository) FindByEmail(email string) (models.User, error) {
 	row, err := repository.db.Query("SELECT ID, PASSWORD FROM USERS WHERE EMAIL = ?", email)
 	if err != nil {
 		return models.User{}, nil
@@ -143,7 +143,7 @@ func (repository users) FindByEmail(email string) (models.User, error) {
 	return user, nil
 }
 
-func (repository users) Follow(userId, followerId uint64) error {
+func (repository userRepository) Follow(userId, followerId uint64) error {
 	statement, err := repository.db.Prepare(
 		"INSERT IGNORE INTO FOLLOWERS (USER_ID, FOLLOWER_ID) VALUES (?, ?)",
 	)
@@ -159,7 +159,7 @@ func (repository users) Follow(userId, followerId uint64) error {
 	return nil
 }
 
-func (repository users) UnFollow(userId, followerId uint64) error {
+func (repository userRepository) UnFollow(userId, followerId uint64) error {
 	statement, err := repository.db.Prepare(
 		"DELETE FROM FOLLOWERS WHERE USER_ID = ? AND FOLLOWER_ID = ?",
 	)
@@ -175,7 +175,7 @@ func (repository users) UnFollow(userId, followerId uint64) error {
 	return nil
 }
 
-func (repository users) FindFollowers(userId uint64) ([]models.User, error) {
+func (repository userRepository) FindFollowers(userId uint64) ([]models.User, error) {
 	rows, err := repository.db.Query(
 		`SELECT 
 			U.ID, 
@@ -214,7 +214,7 @@ func (repository users) FindFollowers(userId uint64) ([]models.User, error) {
 	return followers, nil
 }
 
-func (repository users) FindFollowings(userId uint64) ([]models.User, error) {
+func (repository userRepository) FindFollowings(userId uint64) ([]models.User, error) {
 	rows, err := repository.db.Query(
 		`SELECT 
 			U.ID, 
@@ -253,7 +253,7 @@ func (repository users) FindFollowings(userId uint64) ([]models.User, error) {
 	return followings, nil
 }
 
-func (repository users) FindPassword(userId uint64) (string, error) {
+func (repository userRepository) FindPassword(userId uint64) (string, error) {
 	row, err := repository.db.Query("SELECT PASSWORD FROM USERS WHERE ID = ?", userId)
 	if err != nil {
 		return "", err
@@ -270,7 +270,7 @@ func (repository users) FindPassword(userId uint64) (string, error) {
 	return user.Password, nil
 }
 
-func (repository users) ResetPassword(userId uint64, password string) error {
+func (repository userRepository) ResetPassword(userId uint64, password string) error {
 	statement, err := repository.db.Prepare("UPDATE USERS SET PASSWORD = ? WHERE ID = ?")
 	if err != nil {
 		return err
