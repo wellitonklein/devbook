@@ -1,11 +1,13 @@
 package controllers
 
 import (
+	"api/src/authentication"
 	"api/src/database"
 	"api/src/models"
 	"api/src/repositories"
 	"api/src/responses"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -66,7 +68,7 @@ func FindAllUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responses.SuccessJSON(w, http.StatusInternalServerError, users)
+	responses.SuccessJSON(w, http.StatusOK, users)
 }
 
 func FindUser(w http.ResponseWriter, r *http.Request) {
@@ -100,6 +102,17 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	userId, err := strconv.ParseUint(params["id"], 10, 64)
 	if err != nil {
 		responses.ErrorJSON(w, http.StatusBadRequest, err)
+		return
+	}
+
+	userIdInToken, err := authentication.ExtractUserId(r)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	if userId != userIdInToken {
+		responses.ErrorJSON(w, http.StatusForbidden, errors.New("nâo é possível atualizar um usuário que não seja o seu"))
 		return
 	}
 
@@ -141,6 +154,17 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	userId, err := strconv.ParseUint(params["id"], 10, 64)
 	if err != nil {
 		responses.ErrorJSON(w, http.StatusBadRequest, err)
+		return
+	}
+
+	userIdInToken, err := authentication.ExtractUserId(r)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	if userId != userIdInToken {
+		responses.ErrorJSON(w, http.StatusForbidden, errors.New("nâo é possível deletar um usuário que não seja o seu"))
 		return
 	}
 
