@@ -9,7 +9,7 @@ import (
 
 func Logger(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("\n [%s] %s \n", r.Method, r.RequestURI)
+		fmt.Printf("\n [%s] %s", r.Method, r.RequestURI)
 		next(w, r)
 	}
 }
