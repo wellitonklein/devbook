@@ -6,16 +6,20 @@ import (
 	"net/http"
 )
 
-func ResponseJSON(w http.ResponseWriter, statusCode int, data interface{}) {
+func SuccessJSON(w http.ResponseWriter, statusCode int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 
-	if err := json.NewEncoder(w).Encode(data); err != nil {
-		log.Fatal(err)
+	if data != nil {
+		if err := json.NewEncoder(w).Encode(data); err != nil {
+			log.Fatal(err)
+		}
 	}
+
 }
 
-func ResponseError(w http.ResponseWriter, statusCode int, err error) {
-	ResponseJSON(w, statusCode, struct {
+func ErrorJSON(w http.ResponseWriter, statusCode int, err error) {
+	SuccessJSON(w, statusCode, struct {
 		Err string `json:"error"`
 	}{
 		Err: err.Error(),

@@ -8,24 +8,33 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/gorilla/mux"
 )
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
 	bodyRequest, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		responses.ResponseError(w, http.StatusUnprocessableEntity, err)
+		responses.ErrorJSON(w, http.StatusUnprocessableEntity, err)
 		return
 	}
 
 	user := models.User{}
 	if err = json.Unmarshal(bodyRequest, &user); err != nil {
-		responses.ResponseError(w, http.StatusBadRequest, err)
+		responses.ErrorJSON(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if err = user.Prepare("register"); err != nil {
+		responses.ErrorJSON(w, http.StatusBadRequest, err)
 		return
 	}
 
 	db, err := database.Connection()
 	if err != nil {
-		responses.ResponseError(w, http.StatusInternalServerError, err)
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
 		return
 	}
 	defer db.Close()
@@ -33,25 +42,120 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	repository := repositories.NewRepositoryUser(db)
 	user.ID, err = repository.Create(user)
 	if err != nil {
-		responses.ResponseError(w, http.StatusInternalServerError, err)
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	responses.ResponseJSON(w, http.StatusCreated, user)
+	responses.SuccessJSON(w, http.StatusCreated, user)
 }
 
 func FindAllUser(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Buscando todos os usuários"))
+	search := strings.ToLower(r.URL.Query().Get("search"))
+
+	db, err := database.Connection()
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer db.Close()
+
+	repository := repositories.NewRepositoryUser(db)
+	users, err := repository.Find(search)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	responses.SuccessJSON(w, http.StatusInternalServerError, users)
 }
 
 func FindUser(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Buscando um usuário"))
+	params := mux.Vars(r)
+
+	userId, err := strconv.ParseUint(params["id"], 10, 64)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := database.Connection()
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer db.Close()
+
+	repository := repositories.NewRepositoryUser(db)
+	user, err := repository.FindById(userId)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	responses.SuccessJSON(w, http.StatusOK, user)
 }
 
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Atualizando usuário"))
+	params := mux.Vars(r)
+	userId, err := strconv.ParseUint(params["id"], 10, 64)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusBadRequest, err)
+		return
+	}
+
+	bodyRequest, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusUnprocessableEntity, err)
+		return
+	}
+
+	user := models.User{}
+	if err = json.Unmarshal(bodyRequest, &user); err != nil {
+		responses.ErrorJSON(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if err = user.Prepare("edit"); err != nil {
+		responses.ErrorJSON(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := database.Connection()
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer db.Close()
+
+	repository := repositories.NewRepositoryUser(db)
+	if err = repository.Update(userId, user); err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	responses.SuccessJSON(w, http.StatusNoContent, nil)
 }
 
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Deletando usuário"))
+	params := mux.Vars(r)
+	userId, err := strconv.ParseUint(params["id"], 10, 64)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := database.Connection()
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer db.Close()
+
+	repository := repositories.NewRepositoryUser(db)
+	if err = repository.Delete(userId); err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	responses.SuccessJSON(w, http.StatusNoContent, nil)
 }
