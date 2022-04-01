@@ -165,4 +165,43 @@ func UpdatePublication(w http.ResponseWriter, r *http.Request) {
 	responses.SuccessJSON(w, http.StatusNoContent, nil)
 }
 
-func DeletePublication(w http.ResponseWriter, r *http.Request) {}
+func DeletePublication(w http.ResponseWriter, r *http.Request) {
+	userId, err := authentication.ExtractUserId(r)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	params := mux.Vars(r)
+	publicationId, err := strconv.ParseUint(params["id"], 10, 64)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := database.Connection()
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer db.Close()
+
+	repository := repositories.NewRepositoryPublication(db)
+	publicationInDatabase, err := repository.FindById(publicationId)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if publicationInDatabase.AuthorID != userId {
+		responses.ErrorJSON(w, http.StatusForbidden, errors.New("não é possível excluir uma publicação que não seja sua"))
+		return
+	}
+
+	if err = repository.Delete(publicationId); err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	responses.SuccessJSON(w, http.StatusNoContent, nil)
+}

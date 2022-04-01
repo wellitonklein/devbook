@@ -127,3 +127,18 @@ func (repository publicationRepository) Update(publicationId uint64, publication
 
 	return nil
 }
+
+// Delete exlui uma publicação do banco de dados
+func (repository publicationRepository) Delete(publicationId uint64) error {
+	statement, err := repository.db.Prepare("DELETE FROM PUBLICATIONS WHERE ID = ?")
+	if err != nil {
+		return err
+	}
+	defer statement.Close()
+
+	if _, err = statement.Exec(publicationId); err != nil {
+		return err
+	}
+
+	return nil
+}
