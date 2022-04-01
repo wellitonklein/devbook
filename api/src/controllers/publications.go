@@ -255,3 +255,28 @@ func Like(w http.ResponseWriter, r *http.Request) {
 
 	responses.SuccessJSON(w, http.StatusNoContent, nil)
 }
+
+func Unlike(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	publicationId, err := strconv.ParseUint(params["id"], 10, 64)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := database.Connection()
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer db.Close()
+
+	repository := repositories.NewRepositoryPublication(db)
+
+	if err = repository.Unlike(publicationId); err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	responses.SuccessJSON(w, http.StatusNoContent, nil)
+}

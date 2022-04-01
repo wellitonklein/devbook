@@ -48,4 +48,10 @@ var routesPublications = []Route{
 		Function:               controllers.Like,
 		RequiresAuthentication: true,
 	},
+	{
+		URI:                    "/publications/{id}/unlike",
+		Method:                 http.MethodPost,
+		Function:               controllers.Unlike,
+		RequiresAuthentication: true,
+	},
 }

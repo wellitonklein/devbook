@@ -197,3 +197,23 @@ func (repository publicationRepository) Like(publicationId uint64) error {
 
 	return nil
 }
+
+func (repository publicationRepository) Unlike(publicationId uint64) error {
+	statement, err := repository.db.Prepare(
+		`
+		UPDATE PUBLICATIONS
+		SET LIKES = CASE WHEN LIKES > 0 THEN LIKES -1 ELSE 0 END
+		WHERE ID = ?
+		`,
+	)
+	if err != nil {
+		return err
+	}
+	defer statement.Close()
+
+	if _, err = statement.Exec(publicationId); err != nil {
+		return err
+	}
+
+	return nil
+}
