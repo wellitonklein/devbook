@@ -205,3 +205,53 @@ func DeletePublication(w http.ResponseWriter, r *http.Request) {
 
 	responses.SuccessJSON(w, http.StatusNoContent, nil)
 }
+
+func FindByUser(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	userId, err := strconv.ParseUint(params["id"], 10, 64)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := database.Connection()
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer db.Close()
+
+	repository := repositories.NewRepositoryPublication(db)
+	publications, err := repository.FindByUser(userId)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	responses.SuccessJSON(w, http.StatusOK, publications)
+}
+
+func Like(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	publicationId, err := strconv.ParseUint(params["id"], 10, 64)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := database.Connection()
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer db.Close()
+
+	repository := repositories.NewRepositoryPublication(db)
+
+	if err = repository.Like(publicationId); err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	responses.SuccessJSON(w, http.StatusNoContent, nil)
+}

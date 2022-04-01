@@ -142,3 +142,58 @@ func (repository publicationRepository) Delete(publicationId uint64) error {
 
 	return nil
 }
+
+func (repository publicationRepository) FindByUser(userId uint64) ([]models.Publication, error) {
+	rows, err := repository.db.Query(
+		`
+		SELECT
+			P.*,
+			U.NICK
+		FROM PUBLICATIONS P
+		JOIN USERS U
+			ON U.ID = P.AUTHOR_ID
+		WHERE P.AUTHOR_ID = ?
+		`,
+		userId,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	publications := []models.Publication{}
+
+	for rows.Next() {
+		publication := models.Publication{}
+
+		if err = rows.Scan(
+			&publication.ID,
+			&publication.Title,
+			&publication.Content,
+			&publication.AuthorID,
+			&publication.Likes,
+			&publication.CreatedAt,
+			&publication.AuthorNick,
+		); err != nil {
+			return nil, err
+		}
+
+		publications = append(publications, publication)
+	}
+
+	return publications, nil
+}
+
+func (repository publicationRepository) Like(publicationId uint64) error {
+	statement, err := repository.db.Prepare("UPDATE PUBLICATIONS SET LIKES = LIKES + 1 WHERE ID = ?")
+	if err != nil {
+		return err
+	}
+	defer statement.Close()
+
+	if _, err = statement.Exec(publicationId); err != nil {
+		return err
+	}
+
+	return nil
+}
