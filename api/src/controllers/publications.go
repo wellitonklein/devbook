@@ -7,6 +7,7 @@ import (
 	"api/src/repositories"
 	"api/src/responses"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -106,6 +107,62 @@ func FindPublication(w http.ResponseWriter, r *http.Request) {
 	responses.SuccessJSON(w, http.StatusOK, pubication)
 }
 
-func UpdatePublication(w http.ResponseWriter, r *http.Request) {}
+func UpdatePublication(w http.ResponseWriter, r *http.Request) {
+	userId, err := authentication.ExtractUserId(r)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	params := mux.Vars(r)
+	publicationId, err := strconv.ParseUint(params["id"], 10, 64)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := database.Connection()
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer db.Close()
+
+	repository := repositories.NewRepositoryPublication(db)
+	publicationInDatabase, err := repository.FindById(publicationId)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if publicationInDatabase.AuthorID != userId {
+		responses.ErrorJSON(w, http.StatusForbidden, errors.New("não é possível atualizar uma publicação que não seja sua"))
+		return
+	}
+
+	bodyRequest, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		responses.ErrorJSON(w, http.StatusUnprocessableEntity, err)
+		return
+	}
+
+	publication := models.Publication{}
+	if err = json.Unmarshal(bodyRequest, &publication); err != nil {
+		responses.ErrorJSON(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if err = publication.Prepare(); err != nil {
+		responses.ErrorJSON(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if err = repository.Update(publicationId, publication); err != nil {
+		responses.ErrorJSON(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	responses.SuccessJSON(w, http.StatusNoContent, nil)
+}
 
 func DeletePublication(w http.ResponseWriter, r *http.Request) {}

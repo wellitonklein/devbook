@@ -93,7 +93,7 @@ func (repository publicationRepository) Find(userId uint64) ([]models.Publicatio
 
 	publications := []models.Publication{}
 
-	if rows.Next() {
+	for rows.Next() {
 		publication := models.Publication{}
 
 		if err = rows.Scan(
@@ -112,4 +112,18 @@ func (repository publicationRepository) Find(userId uint64) ([]models.Publicatio
 	}
 
 	return publications, nil
+}
+
+func (repository publicationRepository) Update(publicationId uint64, publication models.Publication) error {
+	statement, err := repository.db.Prepare("UPDATE PUBLICATIONS SET TITLE = ?, CONTENT = ? WHERE ID = ?")
+	if err != nil {
+		return err
+	}
+	defer statement.Close()
+
+	if _, err = statement.Exec(publication.Title, publication.Content, publicationId); err != nil {
+		return err
+	}
+
+	return nil
 }
